@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
+import { router } from 'expo-router';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -11,6 +12,19 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
+  // Check authentication on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      // Implement your auth check logic here
+      const isAuthenticated = false; // Replace with actual auth check
+      if (!isAuthenticated) {
+        router.replace('/login');
+      }
+    };
+
+    checkAuth();
+  }, []);
+
   return (
     <Tabs
       screenOptions={{
@@ -18,6 +32,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
+        tabBarPosition: 'top',
         tabBarStyle: Platform.select({
           ios: {
             // Use a transparent background on iOS to show the blur effect
