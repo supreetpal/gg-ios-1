@@ -1,17 +1,45 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useState } from 'react';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthClient } from '@/lib/api';
+import { Config } from '@/constants/Config';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const colorScheme = useColorScheme();
+  const authClient = new AuthClient(Config.apiUrl);
 
   const handleLogin = async () => {
-    // Implement your login logic here
-    console.log('Login:', email, password);
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const data = await authClient.login(email, password);
+      if (data.success === true) {
+        const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        // Store the token and user data
+        await AsyncStorage.setItem('token', token);
+        await AsyncStorage.setItem('user', JSON.stringify(data.user));
+        // Navigate to main app
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Error', 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to connect to server';
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -25,6 +53,7 @@ export default function LoginScreen() {
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
+        editable={!loading}
       />
       
       <TextInput
@@ -33,14 +62,19 @@ export default function LoginScreen() {
         value={password}
         onChangeText={setPassword}
         secureTextEntry
+        editable={!loading}
       />
       
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
       </TouchableOpacity>
 
       <Link href="/register" asChild>
-        <TouchableOpacity style={styles.linkButton}>
+        <TouchableOpacity style={styles.linkButton} disabled={loading}>
           <Text style={[styles.linkText, { color: Colors[colorScheme ?? 'light'].tint }]}>
             Don't have an account? Register
           </Text>
@@ -89,5 +123,8 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
 }); 

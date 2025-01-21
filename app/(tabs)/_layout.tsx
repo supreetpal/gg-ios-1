@@ -8,22 +8,25 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function TabLayout() {
+  const { isAuthenticated, checkAuth } = useAuth();
   const colorScheme = useColorScheme();
 
-  // Check authentication on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      // Implement your auth check logic here
-      const isAuthenticated = false; // Replace with actual auth check
-      if (!isAuthenticated) {
-        router.replace('/login');
-      }
-    };
+    if (isAuthenticated === false) {
+      router.replace('/(auth)/login');
+    }
+  }, [isAuthenticated]);
 
-    checkAuth();
-  }, []);
+  if (isAuthenticated === null) {
+    return null; // Loading state
+  }
+
+  if (isAuthenticated === false) {
+    return null; // Will redirect due to useEffect
+  }
 
   return (
     <Tabs

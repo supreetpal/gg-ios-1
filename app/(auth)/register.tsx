@@ -1,18 +1,51 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useState } from 'react';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthClient } from '@/lib/api';
+import { Config } from '@/constants/Config';
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const colorScheme = useColorScheme();
 
+  const authClient = new AuthClient(Config.apiUrl);
+
   const handleRegister = async () => {
-    // Implement your registration logic here
-    console.log('Register:', email, password, confirmPassword);
+    if (!email || !password || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await authClient.register(email, password);
+      
+      // Check login status
+      const loginData = await authClient.login(email, password);
+      if (loginData.success === true) {
+        // Navigate to main app
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Error', 'Registration successful but login failed');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to connect to server';
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -26,6 +59,7 @@ export default function RegisterScreen() {
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
+        editable={!loading}
       />
       
       <TextInput
@@ -34,6 +68,7 @@ export default function RegisterScreen() {
         value={password}
         onChangeText={setPassword}
         secureTextEntry
+        editable={!loading}
       />
 
       <TextInput
@@ -42,14 +77,19 @@ export default function RegisterScreen() {
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         secureTextEntry
+        editable={!loading}
       />
       
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Register</Text>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleRegister}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>{loading ? 'Creating Account...' : 'Register'}</Text>
       </TouchableOpacity>
 
       <Link href="/login" asChild>
-        <TouchableOpacity style={styles.linkButton}>
+        <TouchableOpacity style={styles.linkButton} disabled={loading}>
           <Text style={[styles.linkText, { color: Colors[colorScheme ?? 'light'].tint }]}>
             Already have an account? Login
           </Text>
@@ -98,5 +138,8 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
 }); 
