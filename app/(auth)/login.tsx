@@ -16,28 +16,52 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
+      console.log('Login attempt failed: Empty email or password');
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     try {
+      console.log('Initiating login process for email:', email);
       setLoading(true);
+      
+      console.log('Making API request to auth server...');
       const data = await authClient.login(email, password);
-      if (data.success === true) {
+      console.log('Server response:', {
+        ...data,
+        user: {
+          ...data.user,
+          // Mask any sensitive user data in logs
+          password: '[REDACTED]',
+          email: data.user?.email ? `${data.user.email.split('@')[0]}@...` : undefined,
+        }
+      });
+      
+      if (data.user !== null) {
+        console.log('Login successful, generating session token');
         const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        console.log('Generated token:', `${token.substring(0, 8)}...`); // Only log first 8 chars
+        
+        console.log('Storing user data in AsyncStorage');
         // Store the token and user data
         await AsyncStorage.setItem('token', token);
         await AsyncStorage.setItem('user', JSON.stringify(data.user));
-        // Navigate to main app
+        
+        console.log('AsyncStorage updated with new session data');
+        console.log('Navigation to main app');
         router.replace('/(tabs)');
       } else {
+        console.log('Login failed: Server returned success=false');
         Alert.alert('Error', 'Login failed');
       }
     } catch (error) {
       console.error('Login error:', error);
+      console.log('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
       const errorMessage = error instanceof Error ? error.message : 'Failed to connect to server';
+      console.log('Displaying error to user:', errorMessage);
       Alert.alert('Error', errorMessage);
     } finally {
+      console.log('Login process completed');
       setLoading(false);
     }
   };
