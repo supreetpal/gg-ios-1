@@ -34,12 +34,12 @@ export default function App() {
     scrollViewRef.current?.scrollToEnd({ animated: true });
 
     try {
+      console.log('Using token:', token ? `Bearer ${token.slice(0, 4)}...` : 'no token');
       const response = await expoFetch(generateAPIUrl('/api/chat'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token,
-          'Custom-Header': 'custom-value',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           messages: [...messages, userMessage],
@@ -71,7 +71,6 @@ export default function App() {
         switch (indicator) {
           case '0':
             assistantContent += content.replace(/^"|"$/g, '');
-            await new Promise(resolve => setTimeout(resolve, 10));
             setMessages(prev => {
               const newMessages = [...prev];
               if (newMessages.length > 0) {

@@ -26,25 +26,41 @@ interface AuthResponse {
       this.timeout = timeout;
     }
   
+    private async getCsrfToken(): Promise<string> {
+      console.log('🔒 Fetching CSRF token...');
+      const csrfResponse = await fetch(`${this.baseUrl}/api/auth/csrf`);
+      const { csrfToken } = await csrfResponse.json();
+      console.log('✅ CSRF token received');
+      return csrfToken;
+    }
+  
     private async fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+      console.log('🌐 Making API request to:', url);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
   
       try {
         const response = await fetch(url, {
           ...options,
+          headers: {
+            ...options.headers
+          },
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
+        console.log(response);
+        console.log('✨ API request completed');
         return response;
       } catch (error) {
         clearTimeout(timeoutId);
+        console.error('❌ API request failed:', error);
         throw error;
       }
-    }
+    } 
   
     async login(email: string, password: string): Promise<AuthResponse> {
       try {
+        const csrfToken = await this.getCsrfToken();
         const response = await this.fetchWithTimeout(
           `${this.baseUrl}/api/auth/login`,
           {
@@ -52,7 +68,7 @@ interface AuthResponse {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ email, password, csrfToken, redirect: false }),
           }
         );
   
