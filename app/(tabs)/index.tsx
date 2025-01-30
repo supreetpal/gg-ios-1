@@ -5,6 +5,8 @@ import { View, TextInput, ScrollView, Text, SafeAreaView, TouchableOpacity } fro
 import { useState, useEffect, useRef } from 'react';
 import { Message } from '@ai-sdk/react';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
+import Sidebar from '@/components/Sidebar';
+import { Ionicons } from '@expo/vector-icons';
 
 const styles = {
   header: {
@@ -22,17 +24,19 @@ const styles = {
   },
   headerButton: {
     backgroundColor: '#7FD4C9',
-    padding: 10,
+    padding: 6,
     borderRadius: 8,
-    minWidth: 50,
-    height: 38,
+    width: 65,
+    height: 40,
     justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   headerButtonText: {
     color: '#333',
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     textAlign: 'center' as const,
-    fontSize: 14,
+    fontSize: 15,
+    letterSpacing: 0.5,
   },
   container: {
     flex: 1,
@@ -95,6 +99,7 @@ export default function App() {
     'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => 
       (c === 'x' ? (Math.random() * 16 | 0) : ((Math.random() * 16 | 0) & 0x3 | 0x8)).toString(16)
   )}`);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -185,9 +190,16 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+      />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerButton}>
-          <Text style={styles.headerButtonText}>☰</Text>
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={() => setIsSidebarOpen(true)}
+        >
+          <Ionicons name="menu" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>GentleGossip</Text>
         <TouchableOpacity style={styles.headerButton}>
@@ -201,12 +213,33 @@ export default function App() {
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
       >
         {messages.length === 0 && (
-          <View style={{ padding: 20 }}>
-            <Text style={{ fontSize: 20, color: '#666', textAlign: 'center', marginBottom: 20 }}>
+          <View style={[styles.messageContainer, { marginTop: 20, paddingVertical: 24 }]}>
+            <Text style={{ 
+              fontSize: 24, 
+              color: '#00A884', 
+              textAlign: 'center', 
+              marginBottom: 16,
+              fontWeight: '600'
+            }}>
+              Welcome!
+            </Text>
+            <Text style={{ 
+              fontSize: 18, 
+              color: '#666', 
+              textAlign: 'center', 
+              marginBottom: 20,
+              lineHeight: 24
+            }}>
               Let's chat about what's on your mind. I'll help you find clarity, motivation, and the strength within yourself.
             </Text>
-            <Text style={{ fontSize: 18, color: '#666', textAlign: 'center' }}>
-              Ready to take the next step? What would you like to talk about today? ✨
+            <Text style={{ 
+              fontSize: 16, 
+              color: '#666', 
+              textAlign: 'center',
+              lineHeight: 22
+            }}>
+              Ready to take the next step?{'\n'}
+              What would you like to talk about today? ✨
             </Text>
           </View>
         )}
@@ -219,21 +252,21 @@ export default function App() {
               m.role === 'user' ? styles.userMessage : styles.assistantMessage
             ]}
           >
-            <Text 
+            {/* <Text 
               style={[
                 styles.messageRole,
                 m.role === 'user' ? styles.userRole : styles.assistantRole
               ]}
             >
-              {m.role}
-            </Text>
+              {m.role === 'assistant' ? 'coach' : 'client'}
+            </Text> */}
             <Text style={{ fontSize: 16 }}>{m.content}</Text>
           </View>
         ))}
         
         {isTyping && (
-          <View style={[styles.messageContainer, { backgroundColor: '#F0F0F0' }]}>
-            <Text>Assistant is typing...</Text>
+          <View style={[styles.messageContainer, styles.assistantMessage]}>
+            <Text>Thinking...</Text>
           </View>
         )}
       </ScrollView>
