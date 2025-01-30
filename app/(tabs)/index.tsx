@@ -1,10 +1,69 @@
 import { generateAPIUrl } from '@/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetch as expoFetch } from 'expo/fetch';
-import { View, TextInput, ScrollView, Text, SafeAreaView } from 'react-native';
+import { View, TextInput, ScrollView, Text, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { Message } from '@ai-sdk/react';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
+import Sidebar from '@/components/Sidebar';
+import { Ionicons } from '@expo/vector-icons';
+import ChatDisplay from '@/components/ChatDisplay';
+
+interface MenuItem {
+  title: string;
+  id: string;
+  createdAt: string;
+}
+
+const styles = {
+  header: {
+    backgroundColor: '#00A884',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    padding: 16,
+    height: 70,
+  },
+  headerTitle: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: '500' as const,
+  },
+  headerButton: {
+    backgroundColor: '#7FD4C9',
+    padding: 6,
+    borderRadius: 8,
+    width: 65,
+    height: 40,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  headerButtonText: {
+    color: '#333',
+    fontWeight: '600' as const,
+    textAlign: 'center' as const,
+    fontSize: 15,
+    letterSpacing: 0.5,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#E8F5F3',
+  },
+  inputContainer: {
+    backgroundColor: 'white',
+    margin: 12,
+    borderRadius: 24,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+};
 
 export default function App() {
   const [token, setToken] = useState('');
@@ -15,12 +74,45 @@ export default function App() {
     'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => 
       (c === 'x' ? (Math.random() * 16 | 0) : ((Math.random() * 16 | 0) & 0x3 | 0x8)).toString(16)
   )}`);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem('token').then(t => setToken(t || ''));
+    AsyncStorage.getItem('token').then(t => {
+      setToken(t || '');
+      if (t) fetchHistory();
+    });
   }, []);
+
+  const fetchHistory = async () => {
+    if (!token) return;
+    
+    try {
+      const response = await expoFetch(generateAPIUrl('/api/history'), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch history');
+      }
+
+      const data = await response.json();
+      const formattedItems = data.map((item: any) => ({
+        title: item.title || 'Untitled Chat',
+        id: item.id,
+        createdAt: new Date(item.createdAt).toLocaleDateString()
+      }));
+      
+      setMenuItems(formattedItems);
+    } catch (error) {
+      console.error('Error fetching history:', error);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!input.trim()) return;
@@ -30,11 +122,9 @@ export default function App() {
     setInput('');
     setIsTyping(true);
 
-    // Scroll to bottom after user message
     scrollViewRef.current?.scrollToEnd({ animated: true });
 
     try {
-      console.log('Using token:', token ? `Bearer ${token.slice(0, 4)}...` : 'no token');
       const response = await expoFetch(generateAPIUrl('/api/chat'), {
         method: 'POST',
         headers: {
@@ -58,7 +148,6 @@ export default function App() {
       };
       setMessages(prev => [...prev, assistantMessage]);
       
-      // Scroll to bottom after assistant message appears
       scrollViewRef.current?.scrollToEnd({ animated: true });
       
       const chunks = text.split('\n');
@@ -81,18 +170,7 @@ export default function App() {
               }
               return newMessages;
             });
-            // Scroll to bottom after each content update
             scrollViewRef.current?.scrollToEnd({ animated: true });
-            break;
-          case '2':
-            console.log('User message ID:', content);
-            break;
-          case '8':
-            console.log('Server message ID:', content);
-            break;
-          case 'e':
-          case 'd':
-            console.log('Stream ended:', content);
             break;
         }
       }
@@ -103,39 +181,60 @@ export default function App() {
     }
   };
 
-  return (
-    <SafeAreaView style={{ height: '100%' }}>
-      <View style={{ height: '95%', display: 'flex', flexDirection: 'column', paddingHorizontal: 8 }}>
-        <ScrollView 
-          ref={scrollViewRef}
-          style={{ flex: 1 }}
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-        >
-          {messages.map(m => (
-            <View key={m.id} style={{ marginVertical: 8 }}>
-              <View>
-                <Text style={{ fontWeight: 700 }}>{m.role}</Text>
-                <Text>{m.content}</Text>
-              </View>
-            </View>
-          ))}
-          {isTyping && (
-            <View style={{ padding: 8, backgroundColor: '#f0f0f0', margin: 8, borderRadius: 8 }}>
-              <Text>Assistant is typing...</Text>
-            </View>
-          )}
-        </ScrollView>
+  const handleSidebarOpen = () => {
+    setIsSidebarOpen(true);
+  };
 
-        <View style={{ marginTop: 8 }}>
-          <TextInput
-            style={{ backgroundColor: 'white', padding: 8 }}
-            placeholder="Say something..."
-            value={input}
-            onChangeText={setInput}
-            onSubmitEditing={handleSubmit}
-            autoFocus={true}
-          />
-        </View>
+  return (
+    <SafeAreaView style={styles.container}>
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)}
+        menuItems={menuItems}
+      />
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={handleSidebarOpen}
+        >
+          <Ionicons name="menu" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>GentleGossip</Text>
+        <TouchableOpacity style={styles.headerButton}>
+          <Text style={styles.headerButtonText}>Talk</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ChatDisplay messages={messages} isTyping={isTyping} />
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={{ flex: 1, fontSize: 16 }}
+          placeholder="Send a message..."
+          placeholderTextColor="#999"
+          value={input}
+          onChangeText={setInput}
+          onSubmitEditing={handleSubmit}
+          autoFocus={true}
+          multiline={true}
+          numberOfLines={1}
+          textAlignVertical="center"
+        />
+        <TouchableOpacity 
+          onPress={handleSubmit}
+          style={{
+            padding: 8,
+            marginLeft: 8,
+            backgroundColor: '#00A884',
+            borderRadius: 20,
+            width: 40,
+            height: 40,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <Ionicons name="send" size={20} color="white" />
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
