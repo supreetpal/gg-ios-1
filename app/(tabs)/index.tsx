@@ -1,40 +1,87 @@
 import { generateAPIUrl } from '@/utils';
-import { useChat } from '@ai-sdk/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetch as expoFetch } from 'expo/fetch';
 import { View, TextInput, ScrollView, Text, SafeAreaView } from 'react-native';
 import { useState, useEffect } from 'react';
+import { Message } from '@ai-sdk/react';
 
 export default function App() {
   const [token, setToken] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [chatId] = useState(`${
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => 
+      (c === 'x' ? (Math.random() * 16 | 0) : ((Math.random() * 16 | 0) & 0x3 | 0x8)).toString(16)
+  )}`);
 
   useEffect(() => {
     AsyncStorage.getItem('token').then(t => setToken(t || ''));
   }, []);
 
-  const { messages, error, handleInputChange, input, handleSubmit } = useChat({
-    fetch: expoFetch as unknown as typeof globalThis.fetch,
-    api: generateAPIUrl('/api/chat'),
-    id: `${'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (c === 'x' ? (Math.random() * 16 | 0) : ((Math.random() * 16 | 0) & 0x3 | 0x8)).toString(16))}`,
-    headers: {
-      'Authorization': token,
-      'Custom-Header': 'custom-value',
-    },
-    body: {
-      modelId: 'coach'
-    },
-    onResponse: (response) => {
-      console.log('Chat response received:', response);
-    },
-    onFinish: (message) => {
-      console.log('Chat message finished:', message);
-    },
-    onError: error => console.error(error, 'ERROR'),
-  });
+  const handleSubmit = async () => {
+    if (!input.trim()) return;
 
-  console.log('Messages array:', JSON.stringify(messages, null, 2));
+    const userMessage: Message = { role: 'user' as const, content: input, id: Date.now().toString() };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsTyping(true);
 
-  if (error) return <Text>{error.message}</Text>;
+    try {
+      const response = await expoFetch(generateAPIUrl('/api/chat'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token,
+          'Custom-Header': 'custom-value',
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage],
+          modelId: 'coach',
+          id: chatId
+        }),
+      });
+
+      const text = await response.text();
+      let assistantContent = '';
+      
+      // Split by newlines and process each chunk
+      const chunks = text.split('\n');
+      for (const chunk of chunks) {
+        if (!chunk) continue;
+        
+        const indicator = chunk[0];
+        const content = chunk.slice(2);
+        
+        switch (indicator) {
+          case '0': // Content chunk
+            assistantContent += content.replace(/^"|"$/g, '');
+            break;
+          case '2': // User message ID
+            console.log('User message ID:', content);
+            break;
+          case '8': // Server message ID
+            console.log('Server message ID:', content);
+            break;
+          case 'e': // End of stream with metadata
+          case 'd': // End of stream
+            console.log('Stream ended:', content);
+            break;
+        }
+      }
+
+      const assistantMessage: Message = { 
+        role: 'assistant' as const, 
+        content: assistantContent, 
+        id: Date.now().toString() 
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Chat error:', error);
+    } finally {
+      setIsTyping(false);
+    }
+  };
 
   return (
     <SafeAreaView style={{ height: '100%' }}>
@@ -55,6 +102,11 @@ export default function App() {
               </View>
             </View>
           ))}
+          {isTyping && (
+            <View style={{ padding: 8, backgroundColor: '#f0f0f0', margin: 8, borderRadius: 8 }}>
+              <Text>Thinking...</Text>
+            </View>
+          )}
         </ScrollView>
 
         <View style={{ marginTop: 8 }}>
@@ -62,19 +114,8 @@ export default function App() {
             style={{ backgroundColor: 'white', padding: 8 }}
             placeholder="Say something..."
             value={input}
-            onChange={e =>
-              handleInputChange({
-                ...e,
-                target: {
-                  ...e.target,
-                  value: e.nativeEvent.text,
-                },
-              } as unknown as React.ChangeEvent<HTMLInputElement>)
-            }
-            onSubmitEditing={e => {
-              handleSubmit(e);
-              e.preventDefault();
-            }}
+            onChangeText={setInput}
+            onSubmitEditing={handleSubmit}
             autoFocus={true}
           />
         </View>
