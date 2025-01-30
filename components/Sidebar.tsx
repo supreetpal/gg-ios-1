@@ -1,12 +1,19 @@
-import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions, ScrollView } from 'react-native';
 import { useEffect, useRef } from 'react';
+
+interface MenuItem {
+  title: string;
+  createdAt: string;
+  id: string;
+}
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  menuItems: MenuItem[];
 }
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, menuItems }: SidebarProps) {
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -25,13 +32,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     ]).start();
   }, [isOpen]);
 
-  const menuItems = [
-    { title: 'Home', icon: '🏠' },
-    { title: 'Profile', icon: '👤' },
-    { title: 'Settings', icon: '⚙️' },
-    { title: 'Help', icon: '❓' },
-  ];
-
   if (!isOpen) return null;
 
   return (
@@ -47,21 +47,36 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         ]}
       >
         <View style={styles.header}>
-          <Text style={styles.headerText}>Menu</Text>
+          <Text style={styles.headerText}>History</Text>
         </View>
-        {menuItems.map((item, index) => (
-          <TouchableOpacity 
-            key={index} 
-            style={styles.menuItem}
-            onPress={() => {
-              // Handle menu item press
-              onClose();
-            }}
-          >
-            <Text style={styles.menuIcon}>{item.icon}</Text>
-            <Text style={styles.menuText}>{item.title}</Text>
+        <ScrollView style={styles.content}>
+          {menuItems && menuItems.length > 0 ? (
+            menuItems.map((item, index) => (
+              <TouchableOpacity 
+                key={index} 
+                style={styles.menuItem}
+                onPress={() => {
+                  // Handle menu item press
+                  onClose();
+                }}
+              >
+                <View>
+                  <Text style={styles.menuText}>{item.title}</Text>
+                  <Text style={styles.dateText}>{item.createdAt}</Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No history available</Text>
+            </View>
+          )}
+        </ScrollView>
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.footerButton} onPress={onClose}>
+            <Text style={styles.footerText}>Logout</Text>
           </TouchableOpacity>
-        ))}
+        </View>
       </Animated.View>
     </View>
   );
@@ -82,7 +97,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'black',
+    backgroundColor: '#134E4A',
   },
   sidebar: {
     position: 'absolute',
@@ -90,37 +105,84 @@ const styles = StyleSheet.create({
     left: 0,
     width: 300,
     height: '100%',
-    backgroundColor: 'white',
+    backgroundColor: '#F0FDFA',
     paddingTop: 50,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowColor: '#134E4A',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 10,
+    flexDirection: 'column',
   },
   header: {
-    padding: 20,
+    padding: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#99F6E4',
   },
   headerText: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#00A884',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#134E4A',
+    letterSpacing: -0.5,
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
+    padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  menuIcon: {
-    fontSize: 24,
-    marginRight: 15,
+    borderBottomColor: '#99F6E4',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 12,
+    marginVertical: 4,
+    borderRadius: 8,
+    shadowColor: '#134E4A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   menuText: {
+    fontSize: 17,
+    color: '#444444',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  dateText: {
+    fontSize: 13,
+    color: '#115E59',
+    marginTop: 4,
+    fontWeight: '400',
+  },
+  content: {
+    flex: 1,
+    backgroundColor: '#CCFBF1',
+    paddingVertical: 8,
+  },
+  footer: {
+    padding: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#99F6E4',
+    backgroundColor: '#F0FDFA',
+  },
+  footerButton: {
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#2DD4BF',
+    borderRadius: 8,
+  },
+  footerText: {
     fontSize: 16,
-    color: '#333',
+    color: '#134E4A',
+    fontWeight: '600',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#F0FDFA',
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#115E59',
+    textAlign: 'center',
   },
 });
