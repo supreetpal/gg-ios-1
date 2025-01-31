@@ -211,6 +211,17 @@ export default function App() {
     }
   };
 
+  const handleNewChat = () => {
+    // Generate a new UUID for the chat
+    const newChatId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => 
+      (c === 'x' ? (Math.random() * 16 | 0) : ((Math.random() * 16 | 0) & 0x3 | 0x8)).toString(16)
+    );
+    
+    // Clear messages and set new chat ID
+    setMessages([]);
+    setChatId(newChatId);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Sidebar 
@@ -218,6 +229,7 @@ export default function App() {
         onClose={() => setIsSidebarOpen(false)}
         menuItems={menuItems}
         onSelectChat={loadChatMessages}
+        onNewChat={handleNewChat}
       />
       <View style={styles.header}>
         <TouchableOpacity 

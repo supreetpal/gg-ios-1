@@ -12,9 +12,10 @@ interface SidebarProps {
   onClose: () => void;
   menuItems: MenuItem[];
   onSelectChat: (chatId: string) => void;
+  onNewChat: () => void;
 }
 
-export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat, onNewChat }: SidebarProps) {
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -51,6 +52,18 @@ export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat }: Si
           <Text style={styles.headerText}>History</Text>
         </View>
         <ScrollView style={styles.content}>
+          <TouchableOpacity 
+            style={[styles.menuItem, styles.newChatButton]}
+            onPress={() => {
+              onNewChat();
+              onClose();
+            }}
+          >
+            <View>
+              <Text style={[styles.menuText, styles.newChatText]}>+ New Chat</Text>
+            </View>
+          </TouchableOpacity>
+
           {menuItems && menuItems.length > 0 ? (
             menuItems.map((item, index) => (
               <TouchableOpacity 
@@ -185,5 +198,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#115E59',
     textAlign: 'center',
+  },
+  newChatButton: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#99F6E4',
+    borderLeftWidth: 4,
+    borderLeftColor: '#2DD4BF',
+    marginBottom: 12,
+  },
+  newChatText: {
+    color: '#115E59',
+    fontSize: 17,
+    fontWeight: '700',
   },
 });
