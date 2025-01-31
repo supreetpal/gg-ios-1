@@ -8,6 +8,7 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import Sidebar from '@/components/Sidebar';
 import { Ionicons } from '@expo/vector-icons';
 import ChatDisplay from '@/components/ChatDisplay';
+import { useRouter } from 'expo-router';
 
 interface MenuItem {
   title: string;
@@ -66,6 +67,7 @@ const styles = {
 };
 
 export default function App() {
+  const router = useRouter();
   const [token, setToken] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -249,6 +251,23 @@ export default function App() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      // Clear the token from storage
+      await AsyncStorage.removeItem('token');
+      // Clear the app state
+      setToken('');
+      setMessages([]);
+      setMenuItems([]);
+      // Close the sidebar
+      setIsSidebarOpen(false);
+      // Navigate to login page
+      router.replace('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Sidebar 
@@ -258,6 +277,7 @@ export default function App() {
         onSelectChat={loadChatMessages}
         onNewChat={handleNewChat}
         onDeleteChat={handleDeleteChat}
+        onLogout={handleLogout}
       />
       <View style={styles.header}>
         <TouchableOpacity 

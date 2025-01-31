@@ -15,11 +15,12 @@ interface SidebarProps {
   onSelectChat: (chatId: string) => void;
   onNewChat: () => void;
   onDeleteChat?: (chatId: string) => void;
+  onLogout?: () => void;
 }
 
 const SWIPE_THRESHOLD = -80;
 
-export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat, onNewChat, onDeleteChat }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat, onNewChat, onDeleteChat, onLogout }: SidebarProps) {
   const [swipedItemId, setSwipedItemId] = useState<string | null>(null);
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -173,7 +174,10 @@ export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat, onNe
           )}
         </ScrollView>
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.footerButton} onPress={onClose}>
+          <TouchableOpacity 
+            style={styles.footerButton} 
+            onPress={onLogout || onClose}
+          >
             <Text style={styles.footerText}>Logout</Text>
           </TouchableOpacity>
         </View>
