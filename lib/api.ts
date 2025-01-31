@@ -48,7 +48,6 @@ interface AuthResponse {
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
-        console.log(response);
         console.log('✨ API request completed');
         return response;
       } catch (error) {

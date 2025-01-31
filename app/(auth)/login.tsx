@@ -27,7 +27,6 @@ export default function LoginScreen() {
       
       console.log('🌐 Making API request to auth server...');
       const data = await authClient.login(email, password);
-      console.log('📩 Server response:', data);
       console.log('🔒 Server response:', {
         ...data,
         user: {

@@ -70,7 +70,7 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [chatId] = useState(`${
+  const [chatId, setChatId] = useState(`${
     'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => 
       (c === 'x' ? (Math.random() * 16 | 0) : ((Math.random() * 16 | 0) & 0x3 | 0x8)).toString(16)
   )}`);
@@ -174,6 +174,9 @@ export default function App() {
             break;
         }
       }
+      
+      await fetchHistory();
+      
     } catch (error) {
       console.error('Chat error:', error);
     } finally {
@@ -185,12 +188,36 @@ export default function App() {
     setIsSidebarOpen(true);
   };
 
+  const loadChatMessages = async (selectedChatId: string) => {
+    if (!token) return;
+    
+    try {
+      const response = await expoFetch(generateAPIUrl(`/api/chat/${selectedChatId}`), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch chat messages');
+      }
+
+      const data = await response.json();
+      setMessages(data.messages || []);
+      setChatId(selectedChatId);
+    } catch (error) {
+      console.error('Error loading chat messages:', error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Sidebar 
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)}
         menuItems={menuItems}
+        onSelectChat={loadChatMessages}
       />
       <View style={styles.header}>
         <TouchableOpacity 

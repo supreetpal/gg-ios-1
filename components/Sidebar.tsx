@@ -11,9 +11,10 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   menuItems: MenuItem[];
+  onSelectChat: (chatId: string) => void;
 }
 
-export default function Sidebar({ isOpen, onClose, menuItems }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat }: SidebarProps) {
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -56,7 +57,7 @@ export default function Sidebar({ isOpen, onClose, menuItems }: SidebarProps) {
                 key={index} 
                 style={styles.menuItem}
                 onPress={() => {
-                  // Handle menu item press
+                  onSelectChat(item.id);
                   onClose();
                 }}
               >
