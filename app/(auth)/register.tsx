@@ -50,7 +50,11 @@ export default function RegisterScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}>Create Account</Text>
+      <View style={styles.brandContainer}>
+        <Text style={styles.brandTitle}>
+          GentleGossip
+        </Text>
+      </View>
       
       <TextInput
         style={[styles.input, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}
@@ -60,6 +64,7 @@ export default function RegisterScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
         editable={!loading}
+        placeholderTextColor="#999"
       />
       
       <TextInput
@@ -69,6 +74,7 @@ export default function RegisterScreen() {
         onChangeText={setPassword}
         secureTextEntry
         editable={!loading}
+        placeholderTextColor="#999"
       />
 
       <TextInput
@@ -78,6 +84,7 @@ export default function RegisterScreen() {
         onChangeText={setConfirmPassword}
         secureTextEntry
         editable={!loading}
+        placeholderTextColor="#999"
       />
       
       <TouchableOpacity 
@@ -90,7 +97,7 @@ export default function RegisterScreen() {
 
       <Link href="/login" asChild>
         <TouchableOpacity style={styles.linkButton} disabled={loading}>
-          <Text style={[styles.linkText, { color: Colors[colorScheme ?? 'light'].tint }]}>
+          <Text style={[styles.linkText, { color: '#00A884' }]}>
             Already have an account? Login
           </Text>
         </TouchableOpacity>
@@ -104,40 +111,64 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: 'center',
+    backgroundColor: '#E8F5F3',
   },
-  title: {
-    fontSize: 24,
+  brandContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  brandTitle: {
+    fontSize: 36,
     fontWeight: 'bold',
+    color: '#00A884',
+    marginBottom: 8,
+  },
+  brandSubtitle: {
+    fontSize: 18,
+    color: '#666',
     marginBottom: 20,
-    textAlign: 'center',
   },
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: '#7FD4C9',
+    borderRadius: 12,
     marginBottom: 15,
     paddingHorizontal: 15,
+    fontSize: 16,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#00A884',
     height: 50,
-    borderRadius: 8,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
   buttonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   linkButton: {
-    marginTop: 15,
+    marginTop: 20,
     alignItems: 'center',
   },
   linkText: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '500',
   },
   buttonDisabled: {
     opacity: 0.7,
