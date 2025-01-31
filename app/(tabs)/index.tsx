@@ -222,6 +222,33 @@ export default function App() {
     setChatId(newChatId);
   };
 
+  const handleDeleteChat = async (chatId: string) => {
+    if (!token) return;
+    
+    try {
+      const response = await expoFetch(generateAPIUrl(`/api/chat?id=${chatId}`), {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete chat');
+      }
+
+      // Refresh the chat history
+      await fetchHistory();
+      
+      // If the deleted chat was the current chat, start a new one
+      if (chatId === chatId) {
+        handleNewChat();
+      }
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Sidebar 
@@ -230,6 +257,7 @@ export default function App() {
         menuItems={menuItems}
         onSelectChat={loadChatMessages}
         onNewChat={handleNewChat}
+        onDeleteChat={handleDeleteChat}
       />
       <View style={styles.header}>
         <TouchableOpacity 

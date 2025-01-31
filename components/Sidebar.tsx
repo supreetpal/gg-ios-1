@@ -1,5 +1,6 @@
-import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions, ScrollView } from 'react-native';
-import { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions, ScrollView, PanResponder } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 
 interface MenuItem {
   title: string;
@@ -13,11 +14,16 @@ interface SidebarProps {
   menuItems: MenuItem[];
   onSelectChat: (chatId: string) => void;
   onNewChat: () => void;
+  onDeleteChat?: (chatId: string) => void;
 }
 
-export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat, onNewChat }: SidebarProps) {
+const SWIPE_THRESHOLD = -80;
+
+export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat, onNewChat, onDeleteChat }: SidebarProps) {
+  const [swipedItemId, setSwipedItemId] = useState<string | null>(null);
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnims = useRef<{ [key: string]: Animated.Value }>({}).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -33,6 +39,96 @@ export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat, onNe
       }),
     ]).start();
   }, [isOpen]);
+
+  useEffect(() => {
+    menuItems.forEach(item => {
+      if (!slideAnims[item.id]) {
+        slideAnims[item.id] = new Animated.Value(0);
+      }
+    });
+  }, [menuItems]);
+
+  const createPanResponder = (itemId: string) => 
+    PanResponder.create({
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gestureState) => {
+        const dx = gestureState.dx;
+        if (dx < 0) {
+          slideAnims[itemId].setValue(dx);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx < SWIPE_THRESHOLD) {
+          Animated.spring(slideAnims[itemId], {
+            toValue: -100,
+            useNativeDriver: true,
+          }).start();
+          setSwipedItemId(itemId);
+        } else {
+          Animated.spring(slideAnims[itemId], {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+          setSwipedItemId(null);
+        }
+      },
+    });
+
+  const resetSwipe = (itemId: string) => {
+    Animated.spring(slideAnims[itemId], {
+      toValue: 0,
+      useNativeDriver: true,
+    }).start();
+    setSwipedItemId(null);
+  };
+
+  const handleDelete = (itemId: string) => {
+    if (onDeleteChat) {
+      onDeleteChat(itemId);
+      resetSwipe(itemId);
+    }
+  };
+
+  const renderMenuItem = (item: MenuItem, index: number) => {
+    const panResponder = createPanResponder(item.id);
+
+    return (
+      <View key={index} style={styles.menuItemContainer}>
+        <View style={styles.deleteButtonContainer}>
+          <TouchableOpacity 
+            style={styles.deleteButton}
+            onPress={() => handleDelete(item.id)}
+          >
+            <Ionicons name="trash-outline" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
+        <Animated.View
+          {...panResponder.panHandlers}
+          style={[
+            styles.menuItem,
+            {
+              transform: [{
+                translateX: slideAnims[item.id] || new Animated.Value(0)
+              }]
+            }
+          ]}
+        >
+          <TouchableOpacity 
+            style={styles.menuItemContent}
+            onPress={() => {
+              onSelectChat(item.id);
+              onClose();
+            }}
+          >
+            <Text style={styles.menuText} numberOfLines={1} ellipsizeMode="tail">
+              {item.title}
+            </Text>
+            <Text style={styles.dateText}>{item.createdAt}</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    );
+  };
 
   if (!isOpen) return null;
 
@@ -52,34 +148,24 @@ export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat, onNe
           <Text style={styles.headerText}>History</Text>
         </View>
         <ScrollView style={styles.content}>
-          <TouchableOpacity 
-            style={[styles.menuItem, styles.newChatButton]}
-            onPress={() => {
-              onNewChat();
-              onClose();
-            }}
-          >
-            <View>
-              <Text style={[styles.menuText, styles.newChatText]}>+ New Chat</Text>
-            </View>
-          </TouchableOpacity>
+          <View style={styles.menuItemContainer}>
+            <TouchableOpacity 
+              style={[styles.menuItem, styles.newChatButton]}
+              onPress={() => {
+                onNewChat();
+                onClose();
+              }}
+            >
+              <View style={styles.menuItemContent}>
+                <Text style={[styles.menuText, styles.newChatText]} numberOfLines={1}>
+                  + New Chat
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
 
           {menuItems && menuItems.length > 0 ? (
-            menuItems.map((item, index) => (
-              <TouchableOpacity 
-                key={index} 
-                style={styles.menuItem}
-                onPress={() => {
-                  onSelectChat(item.id);
-                  onClose();
-                }}
-              >
-                <View>
-                  <Text style={styles.menuText}>{item.title}</Text>
-                  <Text style={styles.dateText}>{item.createdAt}</Text>
-                </View>
-              </TouchableOpacity>
-            ))
+            menuItems.map((item, index) => renderMenuItem(item, index))
           ) : (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>No history available</Text>
@@ -139,13 +225,30 @@ const styles = StyleSheet.create({
     color: '#134E4A',
     letterSpacing: -0.5,
   },
-  menuItem: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#99F6E4',
-    backgroundColor: '#FFFFFF',
+  menuItemContainer: {
     marginHorizontal: 12,
     marginVertical: 4,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  deleteButtonContainer: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    right: 0,
+    width: '100%',
+    backgroundColor: '#EF4444',
+    justifyContent: 'flex-end',
+    flexDirection: 'row',
+    borderRadius: 8,
+  },
+  deleteButton: {
+    width: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuItem: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     shadowColor: '#134E4A',
     shadowOffset: { width: 0, height: 1 },
@@ -154,10 +257,9 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   menuText: {
-    fontSize: 17,
+    fontSize: 16,
     color: '#444444',
     fontWeight: '600',
-    marginBottom: 2,
   },
   dateText: {
     fontSize: 13,
@@ -205,11 +307,13 @@ const styles = StyleSheet.create({
     borderBottomColor: '#99F6E4',
     borderLeftWidth: 4,
     borderLeftColor: '#2DD4BF',
-    marginBottom: 12,
   },
   newChatText: {
     color: '#115E59',
-    fontSize: 17,
     fontWeight: '700',
+  },
+  menuItemContent: {
+    padding: 16,
+    borderRadius: 8,
   },
 });
