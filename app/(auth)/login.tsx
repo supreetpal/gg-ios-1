@@ -37,9 +37,9 @@ export default function LoginScreen() {
         }
       });
       
-      if (data.user !== null) {
+      if (data.user !== null && data.token) {
         console.log('✅ Login successful, generating session token');
-        const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        const token = data.token;
         console.log('🎟️ Generated token:', `${token.substring(0, 8)}...`); // Only log first 8 chars
         
         console.log('💾 Storing user data in AsyncStorage');

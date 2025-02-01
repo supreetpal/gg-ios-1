@@ -81,38 +81,42 @@ export default function App() {
 
   const scrollViewRef = useRef<ScrollView>(null);
 
-  useEffect(() => {
-    AsyncStorage.getItem('token').then(t => {
-      setToken(t || '');
-      if (t) fetchHistory();
-    });
-  }, []);
-
   const fetchHistory = async () => {
-    if (!token) return;
-    
+    //console.log('fetchHistory started');
     try {
+      const token = await AsyncStorage.getItem('token');
+      console.log('Token retrieved:', token);
+        
+      if (!token) {
+        console.log('No token found, returning early');
+        return;
+      }
+
+      //console.log('Making API request to fetch history');
       const response = await expoFetch(generateAPIUrl('/api/history'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch history');
-      }
-
-      const data = await response.json();
-      const formattedItems = data.map((item: any) => ({
-        title: item.title || 'Untitled Chat',
-        id: item.id,
-        createdAt: new Date(item.createdAt).toLocaleDateString()
-      }));
       
-      setMenuItems(formattedItems);
+      //console.log('API response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        //console.log('History data received:', data.length, 'items');
+        const formattedItems = data.map((item: any) => ({
+          title: item.title || 'Untitled Chat',
+          id: item.id,
+          createdAt: new Date(item.createdAt).toLocaleDateString()
+        }));
+        
+        setMenuItems(formattedItems);
+      } else {
+        console.error('Failed to fetch history:', response.status);
+      }
     } catch (error) {
-      console.error('Error fetching history:', error);
+      console.error('Error in fetchHistory:', error);
     }
   };
 
@@ -186,8 +190,15 @@ export default function App() {
     }
   };
 
-  const handleSidebarOpen = () => {
-    setIsSidebarOpen(true);
+  const toggleSidebar = () => {
+    //console.log('Sidebar toggling, current state:', isSidebarOpen);
+    setIsSidebarOpen(!isSidebarOpen);
+    if (!isSidebarOpen) {
+      //console.log('Attempting to fetch history');
+      fetchHistory().catch(err => {
+        console.error('Error fetching history:', err);
+      });
+    }
   };
 
   const loadChatMessages = async (selectedChatId: string) => {
@@ -282,7 +293,7 @@ export default function App() {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.headerButton}
-          onPress={handleSidebarOpen}
+          onPress={toggleSidebar}
         >
           <Ionicons name="menu" size={24} color="#333" />
         </TouchableOpacity>
