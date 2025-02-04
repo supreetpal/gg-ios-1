@@ -1,4 +1,4 @@
-import { generateAPIUrl } from '@/utils';
+import { generateAPIUrl } from '@/lib/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetch as expoFetch } from 'expo/fetch';
 import { View, TextInput, ScrollView, Text, SafeAreaView, TouchableOpacity } from 'react-native';
@@ -93,7 +93,7 @@ export default function App() {
       }
 
       //console.log('Making API request to fetch history');
-      const response = await expoFetch(generateAPIUrl('/api/history'), {
+      const response = await expoFetch(generateAPIUrl('api/history'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -131,7 +131,7 @@ export default function App() {
     scrollViewRef.current?.scrollToEnd({ animated: true });
 
     try {
-      const response = await expoFetch(generateAPIUrl('/api/chat'), {
+      const response = await expoFetch(generateAPIUrl('api/chat'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -205,7 +205,7 @@ export default function App() {
     if (!token) return;
     
     try {
-      const response = await expoFetch(generateAPIUrl(`/api/chat/${selectedChatId}`), {
+      const response = await expoFetch(generateAPIUrl(`api/chat/${selectedChatId}`), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -235,30 +235,39 @@ export default function App() {
     setChatId(newChatId);
   };
 
-  const handleDeleteChat = async (chatId: string) => {
-    if (!token) return;
+  const handleDeleteChat = async (chatIdToDelete: string) => {
+    console.log('Index: handleDeleteChat called with id:', chatIdToDelete);
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      console.log('Index: No token found, returning early');
+      return;
+    }
     
     try {
-      const response = await expoFetch(generateAPIUrl(`/api/chat?id=${chatId}`), {
+      console.log('Index: Making DELETE request to:', `api/chat/${chatIdToDelete}`);
+      const response = await expoFetch(generateAPIUrl(`api/chat/${chatIdToDelete}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
+      console.log('Index: Delete response status:', response.status);
+
       if (!response.ok) {
+        console.error('Index: Failed to delete chat:', response.status);
         throw new Error('Failed to delete chat');
       }
 
-      // Refresh the chat history
+      console.log('Index: Successfully deleted chat, refreshing history');
       await fetchHistory();
       
-      // If the deleted chat was the current chat, start a new one
-      if (chatId === chatId) {
+      if (chatIdToDelete === chatId) {
+        console.log('Index: Deleted current chat, starting new chat');
         handleNewChat();
       }
     } catch (error) {
-      console.error('Error deleting chat:', error);
+      console.error('Index: Error in handleDeleteChat:', error);
     }
   };
 

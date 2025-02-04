@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions, ScrollView, PanResponder } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions, ScrollView } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,13 +18,10 @@ interface SidebarProps {
   onLogout?: () => void;
 }
 
-const SWIPE_THRESHOLD = -80;
-
 export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat, onNewChat, onDeleteChat, onLogout }: SidebarProps) {
-  const [swipedItemId, setSwipedItemId] = useState<string | null>(null);
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnims = useRef<{ [key: string]: Animated.Value }>({}).current;
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
 
   useEffect(() => {
     Animated.parallel([
@@ -41,92 +38,54 @@ export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat, onNe
     ]).start();
   }, [isOpen]);
 
-  useEffect(() => {
-    menuItems.forEach(item => {
-      if (!slideAnims[item.id]) {
-        slideAnims[item.id] = new Animated.Value(0);
-      }
-    });
-  }, [menuItems]);
-
-  const createPanResponder = (itemId: string) => 
-    PanResponder.create({
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, gestureState) => {
-        const dx = gestureState.dx;
-        if (dx < 0) {
-          slideAnims[itemId].setValue(dx);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx < SWIPE_THRESHOLD) {
-          Animated.spring(slideAnims[itemId], {
-            toValue: -100,
-            useNativeDriver: true,
-          }).start();
-          setSwipedItemId(itemId);
-        } else {
-          Animated.spring(slideAnims[itemId], {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-          setSwipedItemId(null);
-        }
-      },
-    });
-
-  const resetSwipe = (itemId: string) => {
-    Animated.spring(slideAnims[itemId], {
-      toValue: 0,
-      useNativeDriver: true,
-    }).start();
-    setSwipedItemId(null);
-  };
-
   const handleDelete = (itemId: string) => {
+    console.log('Sidebar: handleDelete called with itemId:', itemId);
     if (onDeleteChat) {
+      console.log('Sidebar: Calling onDeleteChat callback');
       onDeleteChat(itemId);
-      resetSwipe(itemId);
+      setActiveItemId(null);
+    } else {
+      console.log('Sidebar: onDeleteChat callback is not defined');
     }
   };
 
   const renderMenuItem = (item: MenuItem, index: number) => {
-    const panResponder = createPanResponder(item.id);
+    const isActive = activeItemId === item.id;
 
     return (
       <View key={index} style={styles.menuItemContainer}>
-        <View style={styles.deleteButtonContainer}>
-          <TouchableOpacity 
-            style={styles.deleteButton}
-            onPress={() => handleDelete(item.id)}
-          >
-            <Ionicons name="trash-outline" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
-        <Animated.View
-          {...panResponder.panHandlers}
-          style={[
-            styles.menuItem,
-            {
-              transform: [{
-                translateX: slideAnims[item.id] || new Animated.Value(0)
-              }]
-            }
-          ]}
+        <TouchableOpacity 
+          style={[styles.menuItem]}
+          onPress={() => {
+            console.log('Sidebar: Chat item pressed, id:', item.id);
+            onSelectChat(item.id);
+            onClose();
+          }}
+          onLongPress={() => {
+            console.log('Sidebar: Long press detected on chat item:', item.id);
+            setActiveItemId(item.id);
+          }}
         >
-          <TouchableOpacity 
-            style={styles.menuItemContent}
-            onPress={() => {
-              onSelectChat(item.id);
-              onClose();
-            }}
-          >
-            <Text style={styles.menuText} numberOfLines={1} ellipsizeMode="tail">
-              {item.title}
-            </Text>
+          <View style={styles.menuItemContent}>
+            <View style={styles.menuItemRow}>
+              <Text style={styles.menuText} numberOfLines={1} ellipsizeMode="tail">
+                {item.title}
+              </Text>
+              {isActive && (
+                <TouchableOpacity 
+                  onPress={() => {
+                    console.log('Sidebar: Delete button pressed for item:', item.id);
+                    handleDelete(item.id);
+                  }}
+                  style={styles.deleteIcon}
+                >
+                  <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                </TouchableOpacity>
+              )}
+            </View>
             <Text style={styles.dateText}>{item.createdAt}</Text>
-          </TouchableOpacity>
-        </Animated.View>
+          </View>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -235,22 +194,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
   },
-  deleteButtonContainer: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    right: 0,
-    width: '100%',
-    backgroundColor: '#EF4444',
-    justifyContent: 'flex-end',
-    flexDirection: 'row',
-    borderRadius: 8,
-  },
-  deleteButton: {
-    width: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   menuItem: {
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
@@ -319,5 +262,13 @@ const styles = StyleSheet.create({
   menuItemContent: {
     padding: 16,
     borderRadius: 8,
+  },
+  menuItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  deleteIcon: {
+    padding: 8,
   },
 });

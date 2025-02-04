@@ -17,31 +17,49 @@ export default function RegisterScreen() {
   const authClient = new AuthClient(Config.apiUrl);
 
   const handleRegister = async () => {
+    console.log('Starting registration process for email:', email);
+    
     if (!email || !password || !confirmPassword) {
+      console.log('Registration failed: Missing required fields');
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     if (password !== confirmPassword) {
+      console.log('Registration failed: Passwords do not match');
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
     try {
       setLoading(true);
+      console.log('Attempting to register user...');
       await authClient.register(email, password);
+      console.log('Registration successful, attempting login...');
       
       // Check login status
       const loginData = await authClient.login(email, password);
-      if (loginData.success === true) {
-        // Navigate to main app
+      if (loginData.user !== null && loginData.token) {
+        console.log('✅ Login successful, generating session token');
+        const token = loginData.token;
+        console.log('🎟️ Generated token:', `${token.substring(0, 8)}...`); // Only log first 8 chars
+        
+        console.log('💾 Storing user data in AsyncStorage');
+        // Store the token and user data
+        await AsyncStorage.setItem('token', token);
+        await AsyncStorage.setItem('user', JSON.stringify(loginData.user));
+        
+        console.log('✨ AsyncStorage updated with new session data');
+        console.log('🔄 Navigation to main app');
         router.replace('/(tabs)');
       } else {
+        console.log('Login failed after successful registration');
         Alert.alert('Error', 'Registration successful but login failed');
       }
     } catch (error) {
       console.error('Registration error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to connect to server';
+      console.log('Registration failed with error:', errorMessage);
       Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
