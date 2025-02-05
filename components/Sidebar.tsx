@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions, ScrollView, PanResponder, Alert } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -21,7 +21,18 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat, onNewChat, onDeleteChat, onLogout }: SidebarProps) {
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [swipedItemId, setSwipedItemId] = useState<string | null>(null);
+  const itemSlideAnims = useRef(
+    new Map<string, Animated.Value>()
+  ).current;
+
+  useEffect(() => {
+    menuItems.forEach(item => {
+      if (!itemSlideAnims.has(item.id)) {
+        itemSlideAnims.set(item.id, new Animated.Value(0));
+      }
+    });
+  }, [menuItems]);
 
   useEffect(() => {
     Animated.parallel([
@@ -39,49 +50,49 @@ export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat, onNe
   }, [isOpen]);
 
   const handleDelete = (itemId: string) => {
-    console.log('Sidebar: handleDelete called with itemId:', itemId);
-    if (onDeleteChat) {
-      console.log('Sidebar: Calling onDeleteChat callback');
-      onDeleteChat(itemId);
-      setActiveItemId(null);
-    } else {
-      console.log('Sidebar: onDeleteChat callback is not defined');
-    }
+    Alert.alert(
+      "Delete Chat",
+      "Are you sure you want to delete this chat?",
+      [
+        { 
+          text: "Delete", 
+          onPress: () => {
+            if (onDeleteChat) {
+              onDeleteChat(itemId);
+            }
+          },
+          style: "destructive"
+        },  
+        {
+          text: "Cancel",
+          style: "cancel"
+        }
+      ],
+      { cancelable: true }
+    );
   };
 
   const renderMenuItem = (item: MenuItem, index: number) => {
-    const isActive = activeItemId === item.id;
-
     return (
       <View key={index} style={styles.menuItemContainer}>
         <TouchableOpacity 
           style={[styles.menuItem]}
           onPress={() => {
-            console.log('Sidebar: Chat item pressed, id:', item.id);
-            console.log('Sidebar: Calling onSelectChat with id:', item.id);
             onSelectChat(item.id);
-            console.log('Sidebar: Called onSelectChat, now calling onClose');
             onClose();
-          }}
-          onLongPress={() => {
-            console.log('Sidebar: Long press detected on chat item:', item.id);
-            setActiveItemId(item.id);
           }}
         >
           <View style={styles.menuItemContent}>
             <View style={styles.menuItemRow}>
-              <Text style={styles.menuText} numberOfLines={1} ellipsizeMode="tail">
+              <Text style={[styles.menuText, { flex: 1 }]} numberOfLines={1} ellipsizeMode="tail">
                 {item.title}
               </Text>
-              {isActive && (
-                <TouchableOpacity 
-                  onPress={() => {
-                    console.log('Sidebar: Delete button pressed for item:', item.id);
-                    handleDelete(item.id);
-                  }}
-                  style={styles.deleteIcon}
+              {onDeleteChat && (
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDelete(item.id)}
                 >
-                  <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                  <Ionicons name="close-circle-outline" size={20} color="#115E59" />
                 </TouchableOpacity>
               )}
             </View>
@@ -270,7 +281,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  deleteIcon: {
-    padding: 8,
+  deleteButton: {
+    padding: 4,
+    marginLeft: 8,
   },
 });
