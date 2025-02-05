@@ -202,25 +202,37 @@ export default function App() {
   };
 
   const loadChatMessages = async (selectedChatId: string) => {
-    if (!token) return;
+    console.log('Index: loadChatMessages called with id:', selectedChatId);
+    const currentToken = await AsyncStorage.getItem('token');
+    if (!currentToken) {
+      console.log('Index: No token found in loadChatMessages');
+      return;
+    }
     
     try {
-      const response = await expoFetch(generateAPIUrl(`api/chat/${selectedChatId}`), {
+      const url = generateAPIUrl(`api/chat/${selectedChatId}`);
+      console.log('Index: Fetching messages from:', url);
+      const response = await expoFetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${currentToken}`,
         },
       });
 
+      console.log('Index: Chat messages response status:', response.status);
+
       if (!response.ok) {
+        console.log('Index: Failed to fetch chat messages:', response.status);
         throw new Error('Failed to fetch chat messages');
       }
 
       const data = await response.json();
+      console.log('Index: Received messages data:', data);
       setMessages(data.messages || []);
       setChatId(selectedChatId);
+      console.log('Index: Updated messages and chatId');
     } catch (error) {
-      console.error('Error loading chat messages:', error);
+      console.error('Index: Error loading chat messages:', error);
     }
   };
 

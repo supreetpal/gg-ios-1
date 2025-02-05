@@ -58,7 +58,9 @@ export default function Sidebar({ isOpen, onClose, menuItems, onSelectChat, onNe
           style={[styles.menuItem]}
           onPress={() => {
             console.log('Sidebar: Chat item pressed, id:', item.id);
+            console.log('Sidebar: Calling onSelectChat with id:', item.id);
             onSelectChat(item.id);
+            console.log('Sidebar: Called onSelectChat, now calling onClose');
             onClose();
           }}
           onLongPress={() => {
