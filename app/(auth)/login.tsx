@@ -1,4 +1,4 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, SafeAreaView } from 'react-native';
 import { useState } from 'react';
 import { Link, router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
@@ -67,59 +67,72 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.brandContainer}>
-        <Text style={styles.brandTitle}>
-          GentleGossip
-        </Text>
-      </View>
-      
-      <TextInput
-        style={[styles.input, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        editable={!loading}
-        placeholderTextColor="#999"
-      />
-      
-      <TextInput
-        style={[styles.input, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        editable={!loading}
-        placeholderTextColor="#999"
-      />
-      
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]} 
-        onPress={handleLogin}
-        disabled={loading}
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
-      </TouchableOpacity>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.brandContainer}>
+            <Text style={styles.brandTitle}>
+              GentleGossip
+            </Text>
+          </View>
+          
+          <TextInput
+            style={[styles.input, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            editable={!loading}
+            placeholderTextColor="#999"
+          />
+          
+          <TextInput
+            style={[styles.input, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            editable={!loading}
+            placeholderTextColor="#999"
+          />
+          
+          <TouchableOpacity 
+            style={[styles.button, loading && styles.buttonDisabled]} 
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
+          </TouchableOpacity>
 
-      <Link href="/register" asChild>
-        <TouchableOpacity style={styles.linkButton} disabled={loading}>
-          <Text style={[styles.linkText, { color: '#00A884' }]}>
-            Don't have an account? Register
-          </Text>
-        </TouchableOpacity>
-      </Link>
-    </View>
+          <Link href="/register" asChild>
+            <TouchableOpacity style={styles.linkButton} disabled={loading}>
+              <Text style={[styles.linkText, { color: '#00A884' }]}>
+                Don't have an account? Register
+              </Text>
+            </TouchableOpacity>
+          </Link>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: 'center',
     backgroundColor: '#E8F5F3',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 20,
   },
   brandContainer: {
     alignItems: 'center',

@@ -1,7 +1,7 @@
 import { generateAPIUrl } from '@/lib/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetch as expoFetch } from 'expo/fetch';
-import { View, TextInput, ScrollView, Text, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, TextInput, ScrollView, Text, SafeAreaView, TouchableOpacity, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { Message } from '@ai-sdk/react';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -63,6 +63,7 @@ const styles = {
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
+    minHeight: 56,
   },
 };
 
@@ -192,13 +193,14 @@ export default function App() {
 
   const toggleSidebar = () => {
     //console.log('Sidebar toggling, current state:', isSidebarOpen);
-    setIsSidebarOpen(!isSidebarOpen);
     if (!isSidebarOpen) {
+      Keyboard.dismiss();
       //console.log('Attempting to fetch history');
       fetchHistory().catch(err => {
         console.error('Error fetching history:', err);
       });
     }
+    setIsSidebarOpen(!isSidebarOpen);
   };
 
   const loadChatMessages = async (selectedChatId: string) => {
@@ -311,50 +313,60 @@ export default function App() {
         onDeleteChat={handleDeleteChat}
         onLogout={handleLogout}
       />
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={toggleSidebar}
-        >
-          <Ionicons name="menu" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>GentleGossip</Text>
-        <TouchableOpacity style={styles.headerButton}>
-          <Text style={styles.headerButtonText}>Talk</Text>
-        </TouchableOpacity>
-      </View>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={toggleSidebar}
+          >
+            <Ionicons name="menu" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>GentleGossip</Text>
+          <TouchableOpacity style={styles.headerButton}>
+            <Text style={styles.headerButtonText}>Talk</Text>
+          </TouchableOpacity>
+        </View>
 
-      <ChatDisplay messages={messages} isTyping={isTyping} />
+        <ChatDisplay messages={messages} isTyping={isTyping} />
 
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={{ flex: 1, fontSize: 16 }}
-          placeholder="Send a message..."
-          placeholderTextColor="#999"
-          value={input}
-          onChangeText={setInput}
-          onSubmitEditing={handleSubmit}
-          autoFocus={true}
-          multiline={true}
-          numberOfLines={1}
-          textAlignVertical="center"
-        />
-        <TouchableOpacity 
-          onPress={handleSubmit}
-          style={{
-            padding: 8,
-            marginLeft: 8,
-            backgroundColor: '#00A884',
-            borderRadius: 20,
-            width: 40,
-            height: 40,
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <Ionicons name="send" size={20} color="white" />
-        </TouchableOpacity>
-      </View>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={{ 
+              flex: 1, 
+              fontSize: 16,
+              paddingVertical: 8,
+              maxHeight: 100,
+            }}
+            placeholder="Send a message..."
+            placeholderTextColor="#999"
+            value={input}
+            onChangeText={setInput}
+            onSubmitEditing={handleSubmit}
+            autoFocus={true}
+            multiline={true}
+            numberOfLines={1}
+            textAlignVertical="center"
+          />
+          <TouchableOpacity 
+            onPress={handleSubmit}
+            style={{
+              padding: 8,
+              marginLeft: 8,
+              backgroundColor: '#00A884',
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Ionicons name="send" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
